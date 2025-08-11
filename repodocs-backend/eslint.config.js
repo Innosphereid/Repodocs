@@ -48,6 +48,7 @@ export default [
 
       // Prettier integration
       'prettier/prettier': 'error',
+      'end-of-line': 'auto',
     },
   },
   {

@@ -15,7 +15,13 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './auth.service';
-import { RefreshTokenDto, AuthResponseDto, AuthStatusDto } from './dto';
+import {
+  RefreshTokenDto,
+  AuthResponseDto,
+  AuthStatusDto,
+  LocalAuthDto,
+  CreateUserDto,
+} from './dto';
 
 @Controller('auth')
 export class AuthController {
@@ -42,6 +48,27 @@ export class AuthController {
       const errorUrl = `${process.env.CORS_ORIGIN || 'http://localhost:3000'}/auth/error`;
       res.redirect(errorUrl);
     }
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async localLogin(@Body() localAuthDto: LocalAuthDto) {
+    const user = await this.authService.validateLocalUser(
+      localAuthDto.username,
+      localAuthDto.password,
+    );
+    return this.authService.login(user);
+  }
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async localRegister(@Body() createUserDto: CreateUserDto) {
+    const user = await this.authService.createLocalUser(
+      createUserDto.username,
+      createUserDto.email,
+      createUserDto.password,
+    );
+    return this.authService.login(user);
   }
 
   @Post('refresh')

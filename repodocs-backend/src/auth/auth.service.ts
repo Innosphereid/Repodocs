@@ -2,13 +2,14 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, PlanType } from '../database/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import { SecurityUtil } from '../utils';
 
 export interface JwtPayload {
   sub: string;
@@ -67,6 +68,62 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async validateLocalUser(username: string, password: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { username } });
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await SecurityUtil.comparePassword(
+      password,
+      user.passwordHash,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return user;
+  }
+
+  async createLocalUser(
+    username: string,
+    email: string,
+    password: string,
+  ): Promise<User> {
+    // Validate password strength
+    const passwordValidation = SecurityUtil.validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      throw new BadRequestException({
+        message: 'Password does not meet security requirements',
+        errors: passwordValidation.errors,
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findOne({
+      where: [{ username }, { email }],
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Username or email already exists');
+    }
+
+    // Hash password and create user
+    const passwordHash = await SecurityUtil.hashPassword(password);
+
+    const user = this.userRepository.create({
+      username: SecurityUtil.sanitizeInput(username),
+      email: SecurityUtil.sanitizeInput(email),
+      passwordHash,
+      planType: PlanType.FREE,
+      monthlyUsageCount: 0,
+      usageResetDate: new Date(),
+    });
+
+    return this.userRepository.save(user);
   }
 
   async generateToken(user: User): Promise<string> {

@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RateLimit } from '../database/entities/rate-limit.entity';
 import { User } from '../database/entities/user.entity';
-import * as crypto from 'crypto';
+import { SecurityUtil } from '../utils';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -26,7 +26,7 @@ export class RateLimitingService {
   ) {}
 
   private hashIp(ip: string): string {
-    return crypto.createHash('sha256').update(ip).digest('hex');
+    return SecurityUtil.hashSensitiveData(ip);
   }
 
   async checkRateLimit(ip: string, userId?: string): Promise<RateLimitResult> {
