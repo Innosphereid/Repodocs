@@ -11,7 +11,7 @@ import { CreateInitialSchema1700000000000 } from './migrations/1700000000000-Cre
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const dbConfig = configService.get('database');
-        
+
         return {
           type: 'postgres',
           url: dbConfig.url,
@@ -20,7 +20,10 @@ import { CreateInitialSchema1700000000000 } from './migrations/1700000000000-Cre
           migrations: [CreateInitialSchema1700000000000], // Include migrations
           migrationsRun: false, // Don't auto-run migrations, run manually
           logging: configService.get('app.nodeEnv') === 'development',
-          ssl: configService.get('app.nodeEnv') === 'production' ? { rejectUnauthorized: false } : false,
+          ssl:
+            configService.get('app.nodeEnv') === 'production'
+              ? { rejectUnauthorized: false }
+              : false,
           extra: {
             max: 20, // Maximum number of connections in the pool
             connectionTimeoutMillis: 30000,

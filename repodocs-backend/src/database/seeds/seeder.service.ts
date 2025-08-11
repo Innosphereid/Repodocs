@@ -28,7 +28,7 @@ export class SeederService {
 
     try {
       const entities = this.dataSource.entityMetadatas;
-      
+
       for (const entity of entities) {
         const repository = this.dataSource.getRepository(entity.name);
         await repository.clear();

@@ -1,6 +1,9 @@
 import { DataSource } from 'typeorm';
 import { User, PlanType } from '../entities/user.entity';
-import { SystemAnalytics, EventType } from '../entities/system-analytics.entity';
+import {
+  SystemAnalytics,
+  EventType,
+} from '../entities/system-analytics.entity';
 
 export class InitialDataSeed {
   constructor(private dataSource: DataSource) {}
@@ -11,7 +14,7 @@ export class InitialDataSeed {
     try {
       // Create system analytics events for initial setup
       await this.createSystemAnalytics();
-      
+
       console.log('✅ Initial data seed completed successfully');
     } catch (error) {
       console.error('❌ Error during initial data seed:', error);
@@ -20,7 +23,8 @@ export class InitialDataSeed {
   }
 
   private async createSystemAnalytics(): Promise<void> {
-    const systemAnalyticsRepository = this.dataSource.getRepository(SystemAnalytics);
+    const systemAnalyticsRepository =
+      this.dataSource.getRepository(SystemAnalytics);
 
     const initialEvents = [
       {

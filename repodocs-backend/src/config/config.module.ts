@@ -29,7 +29,12 @@ import {
         allowUnknown: true,
         abortEarly: false,
       },
-      envFilePath: ['.env', '.env.local', '.env.development', '.env.production'],
+      envFilePath: [
+        '.env',
+        '.env.local',
+        '.env.development',
+        '.env.production',
+      ],
     }),
   ],
 })

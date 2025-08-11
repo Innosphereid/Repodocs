@@ -74,7 +74,10 @@ export class GeneratedDocumentation {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => RepositoryAnalysis, (analysis) => analysis.generatedDocumentation)
+  @ManyToOne(
+    () => RepositoryAnalysis,
+    analysis => analysis.generatedDocumentation,
+  )
   @JoinColumn({ name: 'analysis_id' })
   analysis: RepositoryAnalysis;
 }

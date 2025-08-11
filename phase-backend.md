@@ -20,7 +20,7 @@ Berdasarkan analisis `repodocs_prd.md`, berikut adalah **prioritas pengembangan 
 
 - **Database Module**
 
-  - TypeORM/Prisma integration
+  - TypeORM integration
   - Entity definitions
   - Repository patterns
   - Database migrations

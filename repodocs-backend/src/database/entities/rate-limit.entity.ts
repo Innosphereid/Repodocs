@@ -12,7 +12,13 @@ export class RateLimit {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'ip_hash', type: 'varchar', length: 64, nullable: false, unique: true })
+  @Column({
+    name: 'ip_hash',
+    type: 'varchar',
+    length: 64,
+    nullable: false,
+    unique: true,
+  })
   @Index()
   ipHash: string;
 

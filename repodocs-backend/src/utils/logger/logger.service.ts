@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import { createLogger, logLevels } from "./logger.config";
+import { Injectable } from '@nestjs/common';
+import { createLogger, logLevels } from './logger.config';
 
 export interface LogContext {
   service?: string;
@@ -32,7 +32,7 @@ export class LoggerService {
       parts.push(this.context.method);
     }
 
-    return parts.length > 0 ? parts.join("::") : undefined;
+    return parts.length > 0 ? parts.join('::') : undefined;
   }
 
   /**
@@ -124,7 +124,7 @@ export class LoggerService {
       ...meta,
       operation,
       duration,
-      unit: "ms",
+      unit: 'ms',
     });
   }
 
@@ -135,7 +135,7 @@ export class LoggerService {
     operation: string,
     table: string,
     duration?: number,
-    meta?: any
+    meta?: any,
   ): void {
     this.logger.debug(`Database: ${operation} on ${table}`, {
       ...this.context,
@@ -154,9 +154,9 @@ export class LoggerService {
     url: string,
     statusCode: number,
     duration?: number,
-    meta?: any
+    meta?: any,
   ): void {
-    const level = statusCode >= 400 ? "warn" : "info";
+    const level = statusCode >= 400 ? 'warn' : 'info';
     this.logger.log(level, `HTTP: ${method} ${url} - ${statusCode}`, {
       ...this.context,
       ...meta,
@@ -186,7 +186,7 @@ export class LoggerService {
     event: string,
     entity?: string,
     entityId?: string,
-    meta?: any
+    meta?: any,
   ): void {
     this.logger.info(`Business: ${event}`, {
       ...this.context,
