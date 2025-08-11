@@ -21,6 +21,7 @@
     "db:migrate:run": "typeorm-ts-node-commonjs migration:run -d scripts/run-migration.ts",
     "db:migrate:revert": "typeorm-ts-node-commonjs migration:revert -d scripts/run-migration.ts",
     "db:migrate:show": "typeorm-ts-node-commonjs migration:show -d scripts/run-migration.ts",
+    "logger:test": "ts-node scripts/test-logger.ts",
     "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts"
   },
   "keywords": [
@@ -56,7 +57,9 @@
     "redis": "^4.7.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.25"
+    "typeorm": "^0.3.25",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
