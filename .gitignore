@@ -1,57 +1,40 @@
+# ========================================
+# MONOREPO ROOT LEVEL .gitignore
+# ========================================
+
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
+.pnp
+.pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
 
-# Testing
-/coverage
-
-# Next.js
-/.next/
-/out/
-
-# Production
-/build
-
-# Misc
-.DS_Store
-*.pem
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Local env files
-.env*.local
+# Environment Variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
 
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# ESLint
-.eslintcache
-
-# Storybook
-.storybook-out/
-
-# Cache
-.cache/
-.parcel-cache/
+# Build outputs
+dist/
+build/
+.next/
+out/
+.vercel/
 
 # Logs
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Runtime data
 pids
@@ -70,6 +53,9 @@ jspm_packages/
 # Optional npm cache directory
 .npm
 
+# Optional eslint cache
+.eslintcache
+
 # Optional REPL history
 .node_repl_history
 
@@ -79,24 +65,11 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-.env.test
-.env.production
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
 # Storybook build outputs
-.out
 .storybook-out
 
 # Temporary folders
@@ -122,6 +95,12 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Project specific
+.mcp.json
+.cursor/
+.github/
+.dist/
 
 # TypeScript
 *.tsbuildinfo
@@ -170,3 +149,8 @@ local/
 *.zip
 *.tar.gz
 *.rar
+
+# Lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
