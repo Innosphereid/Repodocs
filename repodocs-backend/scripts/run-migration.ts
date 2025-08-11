@@ -1,24 +1,10 @@
-import { DataSource } from 'typeorm';
-import { config } from 'dotenv';
-import { entities } from '../src/database/entities/entities-array';
-import { CreateInitialSchema1700000000000 } from '../src/database/migrations/1700000000000-CreateInitialSchema';
-
-// Load environment variables
-config();
+import { AppDataSource } from '../src/database/data-source';
 
 async function runMigration() {
   console.log('🚀 Starting database migration...');
   console.log('📊 Database URL:', process.env.DATABASE_URL);
 
-  const dataSource = new DataSource({
-    type: 'postgres',
-    url: process.env.DATABASE_URL,
-    entities: Object.values(entities),
-    migrations: [CreateInitialSchema1700000000000],
-    synchronize: false,
-    logging: true,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  });
+  const dataSource = AppDataSource;
 
   try {
     await dataSource.initialize();

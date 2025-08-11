@@ -1,22 +1,10 @@
-import { DataSource } from 'typeorm';
-import { config } from 'dotenv';
-import { entities } from '../src/database/entities/entities-array';
-
-// Load environment variables
-config();
+import { AppDataSource } from '../src/database/data-source';
 
 async function testDatabaseConnection() {
   console.log('🔍 Testing database connection...');
   console.log('📊 Database URL:', process.env.DATABASE_URL);
 
-  const dataSource = new DataSource({
-    type: 'postgres',
-    url: process.env.DATABASE_URL,
-    entities: Object.values(entities),
-    synchronize: false, // Don't sync in test
-    logging: true,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  });
+  const dataSource = AppDataSource;
 
   try {
     await dataSource.initialize();

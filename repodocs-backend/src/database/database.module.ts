@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { databaseConfig } from '../config/env.config';
 import { entities } from './entities/entities-array';
+import { CreateInitialSchema1700000000000 } from './migrations/1700000000000-CreateInitialSchema';
 
 @Module({
   imports: [
@@ -15,7 +16,9 @@ import { entities } from './entities/entities-array';
           type: 'postgres',
           url: dbConfig.url,
           entities: Object.values(entities),
-          synchronize: configService.get('app.nodeEnv') === 'development', // Only in development
+          synchronize: false, // Disable auto-sync, use migrations instead
+          migrations: [CreateInitialSchema1700000000000], // Include migrations
+          migrationsRun: false, // Don't auto-run migrations, run manually
           logging: configService.get('app.nodeEnv') === 'development',
           ssl: configService.get('app.nodeEnv') === 'production' ? { rejectUnauthorized: false } : false,
           extra: {

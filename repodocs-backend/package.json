@@ -18,7 +18,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:test": "ts-node scripts/test-db-connection.ts",
     "db:migrate": "ts-node scripts/run-migration.ts",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "db:migrate:run": "typeorm-ts-node-commonjs migration:run -d scripts/run-migration.ts",
+    "db:migrate:revert": "typeorm-ts-node-commonjs migration:revert -d scripts/run-migration.ts",
+    "db:migrate:show": "typeorm-ts-node-commonjs migration:show -d scripts/run-migration.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts"
   },
   "keywords": [
     "nestjs",
