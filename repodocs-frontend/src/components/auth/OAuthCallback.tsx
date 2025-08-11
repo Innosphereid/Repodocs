@@ -67,7 +67,7 @@ export const OAuthCallback: React.FC = () => {
           );
 
           // Token is automatically stored by auth service
-          // Now refresh user data and redirect
+          // Now refresh user data from dashboard endpoint and redirect
           await refreshUser();
           setStatus("success");
 

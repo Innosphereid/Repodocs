@@ -124,28 +124,8 @@ class APIService {
 
   // User Dashboard Methods
   async getUserDashboard(): Promise<UserDashboardData> {
-    // For now, we'll use the available auth/profile endpoint
-    // TODO: Backend needs to implement a proper /api/v1/user/dashboard endpoint
-    const user = await this.request<User>("/api/v1/auth/profile");
-
-    // Return a basic dashboard structure with available data
-    // This is a temporary solution until backend implements proper dashboard endpoint
-    return {
-      user,
-      recent_analyses: [], // TODO: Backend needs to implement user analyses endpoint
-      usage_stats: {
-        current_month_usage: user.monthly_usage_count || 0,
-        total_repositories: 0, // TODO: Backend needs to implement this
-        successful_generations: 0, // TODO: Backend needs to implement this
-        average_rating: 0, // TODO: Backend needs to implement this
-      },
-      plan_limits: {
-        monthly_limit:
-          user.plan_type === "free" ? 10 : user.plan_type === "pro" ? 100 : -1,
-        current_usage: user.monthly_usage_count || 0,
-        days_until_reset: 0, // TODO: Backend needs to calculate this from usage_reset_date
-      },
-    };
+    // Now using the proper dashboard endpoint from backend
+    return this.request<UserDashboardData>("/api/v1/auth/dashboard");
   }
 
   async getUserAnalyses(page: number = 1, limit: number = 10) {

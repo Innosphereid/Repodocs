@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const authStatus = await authService.getAuthStatus();
 
         if (authStatus.authenticated && authStatus.user) {
-          // Get full user profile
+          // Get full user profile from dashboard endpoint
           const userProfile = await authService.getProfile();
           setUser(userProfile);
           setIsAuthenticated(true);
@@ -152,10 +152,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      if (isAuthenticated) {
-        const userProfile = await authService.getProfile();
-        setUser(userProfile);
-      }
+      // Always try to refresh user data if we have a token
+      // This is especially important after OAuth callback
+      const userProfile = await authService.getProfile();
+      setUser(userProfile);
+      setIsAuthenticated(true);
     } catch (error) {
       console.error("User refresh failed:", error);
       // If refresh fails, user might be logged out

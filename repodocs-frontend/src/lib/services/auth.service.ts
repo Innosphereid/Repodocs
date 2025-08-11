@@ -140,6 +140,12 @@ class AuthService {
         localStorage.removeItem("github_oauth_state");
       }
 
+      // Store the token after successful OAuth exchange
+      const { access_token } = response.data;
+      if (access_token) {
+        this.setAuthToken(access_token);
+      }
+
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -205,10 +211,9 @@ class AuthService {
   // User Profile
   async getProfile(): Promise<User> {
     try {
-      const response: AxiosResponse<User> = await this.api.get(
-        "/api/v1/auth/profile"
-      );
-      return response.data;
+      // Now using dashboard endpoint to get complete user data
+      const response = await this.api.get("/api/v1/auth/dashboard");
+      return response.data.user;
     } catch (error) {
       throw this.handleError(error);
     }
