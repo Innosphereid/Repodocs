@@ -26,10 +26,14 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001;
   await app.listen(port);
 
   console.log(`🚀 Application is running on: http://localhost:${port}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔐 Authentication: GitHub OAuth enabled`);
+  console.log(`⚡ Rate Limiting: IP-based and user-based limits active`);
+  console.log(`💾 Cache: Redis integration enabled`);
+  console.log(`📋 Job Queue: Bull queue with Redis backend`);
 }
 bootstrap();
