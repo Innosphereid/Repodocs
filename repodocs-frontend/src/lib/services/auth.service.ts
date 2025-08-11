@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { User } from "@/lib/types";
+import { TokenStorage } from "@/lib/utils/cookie.utils";
 
 export interface AuthResponse {
   access_token: string;
@@ -50,7 +51,7 @@ class AuthService {
     // Request interceptor untuk menambahkan token
     this.api.interceptors.request.use(
       (config) => {
-        const token = this.getAuthToken();
+        const token = TokenStorage.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -66,7 +67,7 @@ class AuthService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          this.clearAuthToken();
+          TokenStorage.clearToken();
           // Redirect ke login page jika unauthorized
           if (typeof window !== "undefined") {
             window.location.href = "/auth/login";
@@ -77,24 +78,17 @@ class AuthService {
     );
   }
 
-  // Token management
+  // Token management - now using TokenStorage utility
   private getAuthToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("auth_token");
-    }
-    return null;
+    return TokenStorage.getToken();
   }
 
   private setAuthToken(token: string): void {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", token);
-    }
+    TokenStorage.setToken(token);
   }
 
   private clearAuthToken(): void {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
-    }
+    TokenStorage.clearToken();
   }
 
   // GitHub OAuth
@@ -135,10 +129,11 @@ class AuthService {
     }
 
     try {
-      // Redirect to backend OAuth callback
-      const response = await this.api.get(
-        `/auth/github/callback?code=${code}&state=${state}`
-      );
+      // Use the new exchange endpoint with correct prefix
+      const response = await this.api.post("/api/v1/auth/github/exchange", {
+        code,
+        state,
+      });
 
       // Clear stored state
       if (typeof window !== "undefined") {
@@ -155,7 +150,7 @@ class AuthService {
   async localLogin(credentials: LocalAuthDto): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await this.api.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         credentials
       );
       const { access_token, user } = response.data;
@@ -170,7 +165,7 @@ class AuthService {
   async localRegister(userData: CreateUserDto): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await this.api.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         userData
       );
       const { access_token, user } = response.data;
@@ -186,7 +181,7 @@ class AuthService {
   async refreshToken(): Promise<AuthResponse> {
     try {
       const response: AxiosResponse<AuthResponse> = await this.api.post(
-        "/auth/refresh"
+        "/api/v1/auth/refresh"
       );
       const { access_token, user } = response.data;
 
@@ -199,7 +194,7 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      await this.api.post("/auth/logout");
+      await this.api.post("/api/v1/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -210,7 +205,9 @@ class AuthService {
   // User Profile
   async getProfile(): Promise<User> {
     try {
-      const response: AxiosResponse<User> = await this.api.get("/auth/profile");
+      const response: AxiosResponse<User> = await this.api.get(
+        "/api/v1/auth/profile"
+      );
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -220,7 +217,7 @@ class AuthService {
   async getAuthStatus(): Promise<AuthStatus> {
     try {
       const response: AxiosResponse<AuthStatus> = await this.api.get(
-        "/auth/status"
+        "/api/v1/auth/status"
       );
       return response.data;
     } catch (error) {
@@ -236,11 +233,16 @@ class AuthService {
     );
   }
 
-  private handleError(error: any): Error {
-    if (error.response?.data?.message) {
-      return new Error(error.response.data.message);
+  private handleError(error: unknown): Error {
+    if (error && typeof error === "object" && "response" in error) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      if (axiosError.response?.data?.message) {
+        return new Error(axiosError.response.data.message);
+      }
     }
-    if (error.message) {
+    if (error instanceof Error) {
       return new Error(error.message);
     }
     return new Error("An unexpected error occurred");

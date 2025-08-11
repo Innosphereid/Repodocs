@@ -8,25 +8,27 @@ import {
   User,
   RepositoryAnalysis,
 } from "@/lib/types";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api";
+import { TokenStorage } from "@/lib/utils/cookie.utils";
 
 class APIService {
+  private readonly API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    // Remove /api/v1 from endpoint since it's already included
+    const url = `${this.API_BASE_URL}${endpoint}`;
 
-    const defaultHeaders: Record<string, string> = {
+    const defaultHeaders: HeadersInit = {
       "Content-Type": "application/json",
     };
 
-    // Add auth token if available
-    const token = this.getAuthToken();
+    // Add authorization header if token exists
+    const token = TokenStorage.getToken();
     if (token) {
-      defaultHeaders["Authorization"] = `Bearer ${token}`;
+      defaultHeaders.Authorization = `Bearer ${token}`;
     }
 
     const config: RequestInit = {
@@ -54,28 +56,24 @@ class APIService {
     }
   }
 
-  private getAuthToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("github_token");
-    }
-    return null;
-  }
-
   // Repository Analysis Methods
   async analyzeRepository(
     data: AnalyzeRepositoryRequest
   ): Promise<AnalyzeRepositoryResponse> {
-    return this.request<AnalyzeRepositoryResponse>("/repositories/analyze", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    return this.request<AnalyzeRepositoryResponse>(
+      "/api/v1/repository-analysis/analyze",
+      {
+        method: "POST",
+        body: JSON.stringify({ repositoryUrl: data.repository_url }),
+      }
+    );
   }
 
   async getAnalysisProgress(
     analysisId: string
   ): Promise<RepositoryAnalysisProgress> {
     return this.request<RepositoryAnalysisProgress>(
-      `/repositories/analyze/${analysisId}/progress`
+      `/api/v1/repository-analysis/status/${analysisId}`
     );
   }
 
@@ -83,7 +81,7 @@ class APIService {
     analysisId: string
   ): Promise<DocumentationGenerationResult> {
     return this.request<DocumentationGenerationResult>(
-      `/repositories/analyze/${analysisId}/result`
+      `/api/v1/repository-analysis/${analysisId}`
     );
   }
 
@@ -91,39 +89,63 @@ class APIService {
     analysisId: string
   ): Promise<AnalyzeRepositoryResponse> {
     return this.request<AnalyzeRepositoryResponse>(
-      `/repositories/analyze/${analysisId}/regenerate`,
+      `/api/v1/repository-analysis/analyze`,
       {
         method: "POST",
+        body: JSON.stringify({ repositoryUrl: "" }), // TODO: Need to get original repository URL
       }
     );
   }
 
   // User Authentication Methods
   async authenticateWithGitHub(
-    code: string
+    code: string,
+    state: string
   ): Promise<{ token: string; user: User }> {
     return this.request<{ token: string; user: User }>(
-      "/auth/github/callback",
+      "/api/v1/auth/github/exchange",
       {
         method: "POST",
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, state }),
       }
     );
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>("/auth/me");
+    return this.request<User>("/api/v1/auth/profile");
   }
 
   async logout(): Promise<void> {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("github_token");
+      // Clear both localStorage and cookies
+      TokenStorage.clearToken();
     }
   }
 
   // User Dashboard Methods
   async getUserDashboard(): Promise<UserDashboardData> {
-    return this.request<UserDashboardData>("/user/dashboard");
+    // For now, we'll use the available auth/profile endpoint
+    // TODO: Backend needs to implement a proper /api/v1/user/dashboard endpoint
+    const user = await this.request<User>("/api/v1/auth/profile");
+
+    // Return a basic dashboard structure with available data
+    // This is a temporary solution until backend implements proper dashboard endpoint
+    return {
+      user,
+      recent_analyses: [], // TODO: Backend needs to implement user analyses endpoint
+      usage_stats: {
+        current_month_usage: user.monthly_usage_count || 0,
+        total_repositories: 0, // TODO: Backend needs to implement this
+        successful_generations: 0, // TODO: Backend needs to implement this
+        average_rating: 0, // TODO: Backend needs to implement this
+      },
+      plan_limits: {
+        monthly_limit:
+          user.plan_type === "free" ? 10 : user.plan_type === "pro" ? 100 : -1,
+        current_usage: user.monthly_usage_count || 0,
+        days_until_reset: 0, // TODO: Backend needs to calculate this from usage_reset_date
+      },
+    };
   }
 
   async getUserAnalyses(page: number = 1, limit: number = 10) {
@@ -132,7 +154,9 @@ class APIService {
       total: number;
       page: number;
       limit: number;
-    }>(`/user/analyses?page=${page}&limit=${limit}`);
+    }>(
+      `/api/v1/repository-analysis/user/authenticated?page=${page}&limit=${limit}`
+    );
   }
 
   // Feedback Methods
@@ -141,10 +165,13 @@ class APIService {
     rating: number,
     comment?: string
   ): Promise<void> {
-    return this.request<void>(`/documentation/${documentationId}/feedback`, {
-      method: "POST",
-      body: JSON.stringify({ rating, comment }),
+    // TODO: Backend needs to implement feedback endpoint
+    // For now, we'll just log the feedback
+    console.log(`Feedback submitted for ${documentationId}:`, {
+      rating,
+      comment,
     });
+    return Promise.resolve();
   }
 
   // Repository Validation
@@ -163,9 +190,9 @@ class APIService {
       primary_language?: string;
       is_public: boolean;
       error?: string;
-    }>("/repositories/validate", {
+    }>("/api/v1/repository-analysis/validate", {
       method: "POST",
-      body: JSON.stringify({ repository_url: url }),
+      body: JSON.stringify({ repositoryUrl: url }),
     });
   }
 
@@ -181,7 +208,7 @@ class APIService {
       monthly_limit: number;
       reset_date: string;
       plan_type: string;
-    }>("/user/rate-limit");
+    }>("/api/v1/rate-limit/limits");
   }
 }
 

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/contexts/auth.context";
+import { authService } from "@/lib/services/auth.service";
 import {
   Card,
   CardContent,
@@ -52,52 +53,34 @@ export const OAuthCallback: React.FC = () => {
 
       console.log("OAuth callback received:", { code, state });
 
-      // Try to exchange code for token with backend
+      // Use auth service to handle OAuth callback
       try {
         console.log("Attempting to exchange OAuth code for token...");
-        const response = await fetch(
-          `${
-            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001"
-          }/api/v1/auth/github/exchange`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ code, state }),
-            credentials: "include",
-          }
-        );
+        const response = await authService.handleGitHubCallback(code, state);
 
-        console.log("Backend response status:", response.status);
-        console.log("Backend response headers:", response.headers);
+        console.log("Auth service response:", response);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Backend error response:", errorData);
-          throw new Error(
-            `Backend returned status ${response.status}: ${
-              errorData.message || "Unknown error"
-            }`
+        if (response.access_token) {
+          console.log(
+            "Token received from auth service:",
+            response.access_token
           );
-        }
 
-        // Parse the response to get the token
-        const data = await response.json();
-        console.log("Backend response data:", data);
-
-        if (data.access_token) {
-          console.log("Token received from backend:", data.access_token);
-          localStorage.setItem("auth_token", data.access_token);
+          // Token is automatically stored by auth service
+          // Now refresh user data and redirect
           await refreshUser();
           setStatus("success");
-          setTimeout(() => router.push("/dashboard"), 1000);
+
+          // Redirect to dashboard after successful authentication
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1000);
           return;
         } else {
-          throw new Error("No access token in backend response");
+          throw new Error("No access token in auth service response");
         }
       } catch (fetchError) {
-        console.error("Backend OAuth error:", fetchError);
+        console.error("Auth service OAuth error:", fetchError);
         throw new Error(
           `Failed to complete OAuth: ${
             fetchError instanceof Error ? fetchError.message : "Unknown error"

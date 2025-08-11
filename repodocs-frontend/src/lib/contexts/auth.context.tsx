@@ -82,8 +82,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authService.localLogin({ username, password });
+
+      // Token is automatically stored by auth service
       setUser(response.user as User);
       setIsAuthenticated(true);
+
+      // Redirect to dashboard after successful login
+      if (typeof window !== "undefined") {
+        window.location.href = "/dashboard";
+      }
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -104,8 +111,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email,
         password,
       });
+
+      // Token is automatically stored by auth service
       setUser(response.user as User);
       setIsAuthenticated(true);
+
+      // Redirect to dashboard after successful registration
+      if (typeof window !== "undefined") {
+        window.location.href = "/dashboard";
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;
