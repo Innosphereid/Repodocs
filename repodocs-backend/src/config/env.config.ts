@@ -42,6 +42,7 @@ export const appConfig = registerAs('app', () => ({
   jwtSecret: process.env.JWT_SECRET,
   sessionSecret: process.env.SESSION_SECRET,
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
 }));
 
 export const rateLimitConfig = registerAs('rateLimit', () => ({
@@ -89,6 +90,7 @@ export const validationSchema = Joi.object({
   JWT_SECRET: Joi.string().optional(),
   SESSION_SECRET: Joi.string().optional(),
   CORS_ORIGIN: Joi.string().uri().optional(),
+  BACKEND_URL: Joi.string().uri().optional(),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: Joi.number().positive().optional(),

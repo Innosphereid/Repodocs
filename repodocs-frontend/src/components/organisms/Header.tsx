@@ -3,8 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/atoms/Logo";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/hooks";
-import { githubOAuth } from "@/lib/services/api";
+import { useAuth } from "@/lib/contexts/auth.context";
 import { Github, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
@@ -16,8 +15,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
   const { user, isAuthenticated, logout } = useAuth();
 
   const handleLogin = () => {
-    const authUrl = githubOAuth.getAuthUrl();
-    window.location.href = authUrl;
+    window.location.href = "/auth";
   };
 
   const handleLogout = async () => {

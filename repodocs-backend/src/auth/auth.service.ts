@@ -222,4 +222,91 @@ export class AuthService {
     const limit = limits[user.planType];
     return limit === -1 || user.monthlyUsageCount < limit;
   }
+
+  async exchangeGitHubCode(code: string, state: string): Promise<AuthResponse> {
+    try {
+      // Exchange OAuth code for access token using GitHub API
+      const tokenResponse = await fetch(
+        'https://github.com/login/oauth/access_token',
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: this.configService.get('github.clientId'),
+            client_secret: this.configService.get('github.clientSecret'),
+            code,
+            state,
+          }),
+        },
+      );
+
+      if (!tokenResponse.ok) {
+        throw new Error(
+          `GitHub token exchange failed: ${tokenResponse.statusText}`,
+        );
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      if (tokenData.error) {
+        throw new Error(
+          `GitHub OAuth error: ${tokenData.error_description || tokenData.error}`,
+        );
+      }
+
+      const accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new Error('No access token received from GitHub');
+      }
+
+      // Get user profile from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(
+          `Failed to fetch GitHub user profile: ${userResponse.statusText}`,
+        );
+      }
+
+      const githubUser = await userResponse.json();
+
+      // Get user emails
+      const emailsResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+
+      let email: string | undefined;
+      if (emailsResponse.ok) {
+        const emails = await emailsResponse.json();
+        const primaryEmail = emails.find((e: any) => e.primary);
+        email = primaryEmail?.email;
+      }
+
+      // Validate or create user
+      const user = await this.validateUser(
+        githubUser.id,
+        githubUser.login,
+        email,
+        githubUser.avatar_url,
+      );
+
+      // Generate JWT token and return auth response
+      return this.login(user);
+    } catch (error) {
+      throw new UnauthorizedException(
+        `GitHub OAuth exchange failed: ${error.message}`,
+      );
+    }
+  }
 }

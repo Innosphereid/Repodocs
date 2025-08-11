@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtPayload } from './auth.service';
+import { LoggerService } from '../utils/logger/logger.service';
 import {
   RefreshTokenDto,
   AuthResponseDto,
@@ -25,7 +26,11 @@ import {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly logger = new LoggerService();
+
+  constructor(private readonly authService: AuthService) {
+    this.logger.setContext({ service: 'AuthController' });
+  }
 
   @Get('github')
   @UseGuards(AuthGuard('github'))
@@ -36,17 +41,87 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
   async githubAuthCallback(@Req() req: Request, @Res() res: Response) {
+    this.logger.info('GitHub OAuth callback received', {
+      method: 'githubAuthCallback',
+      url: req.url,
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
+
     try {
       const user = req.user as any;
+      this.logger.info('User validated from GitHub OAuth', {
+        method: 'githubAuthCallback',
+        userId: user?.id,
+        username: user?.username,
+        email: user?.email,
+      });
+
       const authResponse = await this.authService.login(user);
+      this.logger.info('Auth response generated successfully', {
+        method: 'githubAuthCallback',
+        hasToken: !!authResponse.access_token,
+        tokenLength: authResponse.access_token?.length,
+        userId: user?.id,
+      });
 
       // Redirect to frontend with token
       const redirectUrl = `${process.env.CORS_ORIGIN || 'http://localhost:3000'}/auth/callback?token=${authResponse.access_token}`;
+      this.logger.info('Redirecting to frontend with token', {
+        method: 'githubAuthCallback',
+        redirectUrl,
+        userId: user?.id,
+      });
+
       res.redirect(redirectUrl);
     } catch (error) {
-      console.error('GitHub OAuth callback error:', error);
+      this.logger.errorWithStack('GitHub OAuth callback failed', error, {
+        method: 'githubAuthCallback',
+        userId: (req.user as any)?.id,
+        url: req.url,
+      });
+
       const errorUrl = `${process.env.CORS_ORIGIN || 'http://localhost:3000'}/auth/error`;
+      this.logger.warn('Redirecting to error page due to OAuth failure', {
+        method: 'githubAuthCallback',
+        errorUrl,
+        error: error.message,
+      });
+
       res.redirect(errorUrl);
+    }
+  }
+
+  @Post('github/exchange')
+  @HttpCode(HttpStatus.OK)
+  async githubCodeExchange(@Body() body: { code: string; state: string }) {
+    this.logger.info('GitHub OAuth code exchange requested', {
+      method: 'githubCodeExchange',
+      hasCode: !!body.code,
+      hasState: !!body.state,
+    });
+
+    try {
+      // This endpoint will handle the OAuth code exchange manually
+      // since we can't use passport strategy for POST requests
+      const authResponse = await this.authService.exchangeGitHubCode(
+        body.code,
+        body.state,
+      );
+
+      this.logger.info('GitHub OAuth code exchange successful', {
+        method: 'githubCodeExchange',
+        hasToken: !!authResponse.access_token,
+        userId: authResponse.user?.id,
+      });
+
+      return authResponse;
+    } catch (error) {
+      this.logger.errorWithStack('GitHub OAuth code exchange failed', error, {
+        method: 'githubCodeExchange',
+        code: body.code,
+      });
+      throw error;
     }
   }
 

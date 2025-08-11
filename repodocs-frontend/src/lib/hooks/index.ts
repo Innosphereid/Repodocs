@@ -108,66 +108,8 @@ export function useRepositoryAnalysis() {
   };
 }
 
-// Hook for user authentication
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const checkAuthStatus = async () => {
-    try {
-      setIsLoading(true);
-      const userData = await apiService.getCurrentUser();
-      setUser(userData);
-      setIsAuthenticated(true);
-    } catch (err) {
-      console.debug("Auth status check failed:", err);
-      setUser(null);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const login = async (code: string) => {
-    try {
-      const { token, user: userData } = await apiService.authenticateWithGitHub(
-        code
-      );
-
-      // Store token in localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("github_token", token);
-      }
-
-      setUser(userData);
-      setIsAuthenticated(true);
-      return true;
-    } catch (err) {
-      console.error("Login failed:", err);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    await apiService.logout();
-    setUser(null);
-    setIsAuthenticated(false);
-  };
-
-  return {
-    user,
-    isLoading,
-    isAuthenticated,
-    login,
-    logout,
-    checkAuthStatus,
-  };
-}
+// Hook for user authentication - now using context
+export { useAuth } from "@/lib/contexts/auth.context";
 
 // Hook for user dashboard data
 export function useUserDashboard() {
