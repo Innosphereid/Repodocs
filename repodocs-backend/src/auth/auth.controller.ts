@@ -158,6 +158,36 @@ export class AuthController {
     return this.authService.getUserById(user.sub);
   }
 
+  @Get('dashboard')
+  @UseGuards(JwtAuthGuard)
+  async getUserDashboard(@CurrentUser() user: JwtPayload) {
+    this.logger.info('User dashboard requested', {
+      method: 'getUserDashboard',
+      userId: user.sub,
+      username: user.username,
+    });
+
+    try {
+      const dashboardData = await this.authService.getUserDashboard(user.sub);
+
+      this.logger.info('User dashboard retrieved successfully', {
+        method: 'getUserDashboard',
+        userId: user.sub,
+        hasRecentAnalyses: dashboardData.recent_analyses.length > 0,
+        totalRepositories: dashboardData.usage_stats.total_repositories,
+        successfulGenerations: dashboardData.usage_stats.successful_generations,
+      });
+
+      return dashboardData;
+    } catch (error) {
+      this.logger.errorWithStack('Failed to get user dashboard', error, {
+        method: 'getUserDashboard',
+        userId: user.sub,
+      });
+      throw error;
+    }
+  }
+
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

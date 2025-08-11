@@ -8,6 +8,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, PlanType } from '../database/entities/user.entity';
+import {
+  RepositoryAnalysis,
+  AnalysisStatus,
+} from '../database/entities/repository-analysis.entity';
+import { GeneratedDocumentation } from '../database/entities/generated-documentation.entity';
 import { ConfigService } from '@nestjs/config';
 import { SecurityUtil } from '../utils';
 
@@ -35,6 +40,10 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(RepositoryAnalysis)
+    private readonly repositoryAnalysisRepository: Repository<RepositoryAnalysis>,
+    @InjectRepository(GeneratedDocumentation)
+    private readonly generatedDocumentationRepository: Repository<GeneratedDocumentation>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -306,6 +315,107 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException(
         `GitHub OAuth exchange failed: ${error.message}`,
+      );
+    }
+  }
+
+  async getUserDashboard(userId: string) {
+    try {
+      // Get user data
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Get recent analyses (10 most recent)
+      const recentAnalyses = await this.repositoryAnalysisRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
+
+      // Get total repositories count
+      const totalRepositories = await this.repositoryAnalysisRepository.count({
+        where: { userId },
+      });
+
+      // Get successful generations count (completed analyses)
+      const successfulGenerations =
+        await this.repositoryAnalysisRepository.count({
+          where: { userId, analysisStatus: AnalysisStatus.COMPLETED },
+        });
+
+      // Get average rating from generated documentation
+      const averageRatingResult = await this.generatedDocumentationRepository
+        .createQueryBuilder('gd')
+        .select('AVG(gd.userFeedbackRating)', 'averageRating')
+        .innerJoin('gd.analysis', 'ra')
+        .where('ra.userId = :userId', { userId })
+        .andWhere('gd.userFeedbackRating IS NOT NULL')
+        .getRawOne();
+
+      const averageRating = averageRatingResult?.averageRating || 0;
+
+      // Calculate days until reset
+      const now = new Date();
+      const resetDate = new Date(user.usageResetDate);
+      const daysUntilReset = Math.ceil(
+        (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Calculate monthly limit based on plan type
+      const monthlyLimit =
+        user.planType === PlanType.FREE
+          ? 10
+          : user.planType === PlanType.PRO
+            ? 100
+            : -1; // -1 for unlimited
+
+      return {
+        user: {
+          id: user.id,
+          github_id: user.githubId,
+          username: user.username,
+          email: user.email,
+          avatar_url: user.avatarUrl,
+          plan_type: user.planType,
+          monthly_usage_count: user.monthlyUsageCount,
+          usage_reset_date: user.usageResetDate.toISOString(),
+          created_at: user.createdAt.toISOString(),
+          updated_at: user.updatedAt.toISOString(),
+        },
+        recent_analyses: recentAnalyses.map(analysis => ({
+          id: analysis.id,
+          user_id: analysis.userId,
+          user_ip_hash: analysis.userIpHash,
+          repository_url: analysis.repositoryUrl,
+          repository_name: analysis.repositoryName,
+          repository_owner: analysis.repositoryOwner,
+          primary_language: analysis.primaryLanguage,
+          framework_detected: analysis.frameworkDetected,
+          file_count: analysis.fileCount,
+          total_size_bytes: analysis.totalSizeBytes,
+          analysis_status: analysis.analysisStatus,
+          ai_model_used: analysis.aiModelUsed,
+          processing_time_seconds: analysis.processingTimeSeconds,
+          created_at: analysis.createdAt.toISOString(),
+          completed_at: analysis.completedAt?.toISOString(),
+        })),
+        usage_stats: {
+          current_month_usage: user.monthlyUsageCount,
+          total_repositories: totalRepositories,
+          successful_generations: successfulGenerations,
+          average_rating: parseFloat(averageRating),
+        },
+        plan_limits: {
+          monthly_limit: monthlyLimit,
+          current_usage: user.monthlyUsageCount,
+          days_until_reset: daysUntilReset,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException(
+        `Failed to get user dashboard: ${error.message}`,
       );
     }
   }
