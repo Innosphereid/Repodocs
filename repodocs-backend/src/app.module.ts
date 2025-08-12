@@ -7,7 +7,10 @@ import { SeederModule } from './database/seeds';
 import { HealthModule } from './health';
 import { LoggerModule, SecurityMiddleware } from './utils';
 import { AuthModule } from './auth';
-import { RateLimitingModule, RateLimitingMiddleware } from './rate-limiting';
+import {
+  RateLimitingModule,
+  SelectiveRateLimitingMiddleware,
+} from './rate-limiting';
 import { AppCacheModule } from './cache';
 import { JobQueueModule } from './job-queue';
 import { RepositoryAnalysisModule } from './repository-analysis';
@@ -33,7 +36,7 @@ export class AppModule {
     consumer
       .apply(SecurityMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL })
-      .apply(RateLimitingMiddleware)
+      .apply(SelectiveRateLimitingMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

@@ -35,18 +35,20 @@ export class ComprehensiveAuthGuard implements CanActivate {
       const user = await this.authService.getUserById(payload.sub);
 
       // Check rate limiting for authenticated users
-      const rateLimitResult = await this.rateLimitingService.checkRateLimit(
+      const rateLimitResult = await this.rateLimitingService.checkApiRateLimit(
         request.ip,
-        user.id,
       );
 
       if (!rateLimitResult.allowed) {
         throw new UnauthorizedException('Rate limit exceeded');
       }
 
-      // Check user usage limits
+      // Check user usage limits for document generation
       const userUsageResult =
-        await this.rateLimitingService.checkUserUsageLimit(user.id);
+        await this.rateLimitingService.checkDocumentGenerationRateLimit(
+          request.ip,
+          user.id,
+        );
 
       if (!userUsageResult.allowed) {
         throw new UnauthorizedException('Monthly usage limit exceeded');
