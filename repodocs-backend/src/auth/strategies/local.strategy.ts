@@ -10,8 +10,10 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(username: string, password: string): Promise<any> {
-    // This is a placeholder for future local authentication
-    // Currently, we only support GitHub OAuth
-    throw new UnauthorizedException('Local authentication not implemented');
+    try {
+      return await this.authService.validateLocalUser(username, password);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
   }
 }

@@ -37,6 +37,9 @@ export class User {
   @Column({ name: 'github_token_encrypted', type: 'text', nullable: true })
   githubTokenEncrypted: string;
 
+  @Column({ name: 'password_hash', type: 'text', nullable: true })
+  passwordHash: string;
+
   @Column({
     name: 'plan_type',
     type: 'varchar',

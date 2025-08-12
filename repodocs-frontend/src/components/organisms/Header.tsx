@@ -3,8 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/atoms/Logo";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/hooks";
-import { githubOAuth } from "@/lib/services/api";
+import { useAuth } from "@/lib/contexts/auth.context";
 import { Github, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
@@ -16,8 +15,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
   const { user, isAuthenticated, logout } = useAuth();
 
   const handleLogin = () => {
-    const authUrl = githubOAuth.getAuthUrl();
-    window.location.href = authUrl;
+    window.location.href = "/auth";
   };
 
   const handleLogout = async () => {
@@ -82,20 +80,31 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                 {/* User Menu */}
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.username}
-                        className="h-8 w-8 rounded-full"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                        <User className="h-4 w-4" />
-                      </div>
-                    )}
-                    <span className="text-sm font-medium text-gray-700">
+                    {/* Profile Link - Avatar */}
+                    <Link
+                      href="/dashboard/profile"
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.username}
+                          className="h-8 w-8 rounded-full cursor-pointer"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center cursor-pointer">
+                          <User className="h-4 w-4" />
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Profile Link - Username */}
+                    <Link
+                      href="/dashboard/profile"
+                      className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
+                    >
                       {user.username}
-                    </span>
+                    </Link>
                   </div>
 
                   <Button

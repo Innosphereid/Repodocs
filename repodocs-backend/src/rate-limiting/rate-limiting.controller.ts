@@ -25,34 +25,46 @@ export class RateLimitingController {
     return this.rateLimitingService.getRateLimitStatus(clientIp, user.sub);
   }
 
-  @Get('limits')
-  async getRateLimitInfo() {
-    // Return rate limit configuration information
+  @Get('document-generation')
+  async getDocumentGenerationRateLimitInfo() {
+    // Return document generation rate limit configuration information
     return {
       anonymous: {
-        limit: 3,
-        window: '15 minutes',
-        description: 'IP-based rate limiting for anonymous users',
+        monthlyLimit: 3,
+        description: 'IP-based monthly limit for anonymous users',
       },
-      authenticated: {
-        limit: 10,
-        window: '15 minutes',
-        description: 'IP-based rate limiting for authenticated users',
+      free: {
+        monthlyLimit: 10,
+        description: 'Monthly limit for free plan users',
       },
-      plans: {
-        free: {
-          monthlyLimit: 10,
-          description: 'Free plan monthly usage limit',
-        },
-        pro: {
-          monthlyLimit: 100,
-          description: 'Pro plan monthly usage limit',
-        },
-        team: {
-          monthlyLimit: 'Unlimited',
-          description: 'Team plan unlimited usage',
-        },
+      pro: {
+        monthlyLimit: 100,
+        description: 'Monthly limit for pro plan users',
       },
+      team: {
+        monthlyLimit: 'Unlimited',
+        description: 'Unlimited monthly usage for team plan users',
+      },
+    };
+  }
+
+  @Get('login-attempts')
+  async getLoginAttemptRateLimitInfo() {
+    // Return login attempt rate limit configuration information
+    return {
+      maxAttempts: 5,
+      window: '1 minute',
+      description: 'Rate limiting for login attempts per IP address',
+    };
+  }
+
+  @Get('api')
+  async getApiRateLimitInfo() {
+    // Return API rate limit configuration information
+    return {
+      maxRequests: 100,
+      window: '15 minutes',
+      description: 'General API rate limiting for all endpoints',
     };
   }
 }

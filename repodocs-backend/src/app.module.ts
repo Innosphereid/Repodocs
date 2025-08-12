@@ -5,9 +5,12 @@ import { ConfigModule } from './config';
 import { DatabaseModule } from './database';
 import { SeederModule } from './database/seeds';
 import { HealthModule } from './health';
-import { LoggerModule } from './utils';
+import { LoggerModule, SecurityMiddleware } from './utils';
 import { AuthModule } from './auth';
-import { RateLimitingModule, RateLimitingMiddleware } from './rate-limiting';
+import {
+  RateLimitingModule,
+  SelectiveRateLimitingMiddleware,
+} from './rate-limiting';
 import { AppCacheModule } from './cache';
 import { JobQueueModule } from './job-queue';
 import { RepositoryAnalysisModule } from './repository-analysis';
@@ -31,7 +34,9 @@ import { RepositoryAnalysisModule } from './repository-analysis';
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(RateLimitingMiddleware)
+      .apply(SecurityMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL })
+      .apply(SelectiveRateLimitingMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

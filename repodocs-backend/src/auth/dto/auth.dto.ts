@@ -29,3 +29,22 @@ export class AuthStatusDto {
     planType: string;
   };
 }
+
+export class LocalAuthDto {
+  @IsString()
+  username: string;
+
+  @IsString()
+  password: string;
+}
+
+export class CreateUserDto {
+  @IsString()
+  username: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  password: string;
+}

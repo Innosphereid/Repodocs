@@ -2,13 +2,21 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, PlanType } from '../database/entities/user.entity';
+import {
+  RepositoryAnalysis,
+  AnalysisStatus,
+} from '../database/entities/repository-analysis.entity';
+import { GeneratedDocumentation } from '../database/entities/generated-documentation.entity';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import { SecurityUtil } from '../utils';
+import { LoggerService } from '../utils/logger';
+import { UserProfileResponse, PlanFeatures } from './dto/profile.dto';
 
 export interface JwtPayload {
   sub: string;
@@ -31,12 +39,20 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new LoggerService();
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(RepositoryAnalysis)
+    private readonly repositoryAnalysisRepository: Repository<RepositoryAnalysis>,
+    @InjectRepository(GeneratedDocumentation)
+    private readonly generatedDocumentationRepository: Repository<GeneratedDocumentation>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.logger.setContext({ service: 'AuthService' });
+  }
 
   async validateUser(
     githubId: number,
@@ -67,6 +83,62 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async validateLocalUser(username: string, password: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { username } });
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await SecurityUtil.comparePassword(
+      password,
+      user.passwordHash,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return user;
+  }
+
+  async createLocalUser(
+    username: string,
+    email: string,
+    password: string,
+  ): Promise<User> {
+    // Validate password strength
+    const passwordValidation = SecurityUtil.validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      throw new BadRequestException({
+        message: 'Password does not meet security requirements',
+        errors: passwordValidation.errors,
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findOne({
+      where: [{ username }, { email }],
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Username or email already exists');
+    }
+
+    // Hash password and create user
+    const passwordHash = await SecurityUtil.hashPassword(password);
+
+    const user = this.userRepository.create({
+      username: SecurityUtil.sanitizeInput(username),
+      email: SecurityUtil.sanitizeInput(email),
+      passwordHash,
+      planType: PlanType.FREE,
+      monthlyUsageCount: 0,
+      usageResetDate: new Date(),
+    });
+
+    return this.userRepository.save(user);
   }
 
   async generateToken(user: User): Promise<string> {
@@ -164,5 +236,376 @@ export class AuthService {
 
     const limit = limits[user.planType];
     return limit === -1 || user.monthlyUsageCount < limit;
+  }
+
+  async exchangeGitHubCode(code: string, state: string): Promise<AuthResponse> {
+    try {
+      // Exchange OAuth code for access token using GitHub API
+      const tokenResponse = await fetch(
+        'https://github.com/login/oauth/access_token',
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: this.configService.get('github.clientId'),
+            client_secret: this.configService.get('github.clientSecret'),
+            code,
+            state,
+          }),
+        },
+      );
+
+      if (!tokenResponse.ok) {
+        throw new Error(
+          `GitHub token exchange failed: ${tokenResponse.statusText}`,
+        );
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      if (tokenData.error) {
+        throw new Error(
+          `GitHub OAuth error: ${tokenData.error_description || tokenData.error}`,
+        );
+      }
+
+      const accessToken = tokenData.access_token;
+      if (!accessToken) {
+        throw new Error('No access token received from GitHub');
+      }
+
+      // Get user profile from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error(
+          `Failed to fetch GitHub user profile: ${userResponse.statusText}`,
+        );
+      }
+
+      const githubUser = await userResponse.json();
+
+      // Get user emails
+      const emailsResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+
+      let email: string | undefined;
+      if (emailsResponse.ok) {
+        const emails = await emailsResponse.json();
+        const primaryEmail = emails.find((e: any) => e.primary);
+        email = primaryEmail?.email;
+      }
+
+      // Validate or create user
+      const user = await this.validateUser(
+        githubUser.id,
+        githubUser.login,
+        email,
+        githubUser.avatar_url,
+      );
+
+      // Generate JWT token and return auth response
+      return this.login(user);
+    } catch (error) {
+      throw new UnauthorizedException(
+        `GitHub OAuth exchange failed: ${error.message}`,
+      );
+    }
+  }
+
+  async getUserDashboard(userId: string) {
+    try {
+      // Get user data
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Get recent analyses (10 most recent)
+      const recentAnalyses = await this.repositoryAnalysisRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
+
+      // Get total repositories count
+      const totalRepositories = await this.repositoryAnalysisRepository.count({
+        where: { userId },
+      });
+
+      // Get successful generations count (completed analyses)
+      const successfulGenerations =
+        await this.repositoryAnalysisRepository.count({
+          where: { userId, analysisStatus: AnalysisStatus.COMPLETED },
+        });
+
+      // Get average rating from generated documentation
+      const averageRatingResult = await this.generatedDocumentationRepository
+        .createQueryBuilder('gd')
+        .select('AVG(gd.userFeedbackRating)', 'averageRating')
+        .innerJoin('gd.analysis', 'ra')
+        .where('ra.userId = :userId', { userId })
+        .andWhere('gd.userFeedbackRating IS NOT NULL')
+        .getRawOne();
+
+      const averageRating = averageRatingResult?.averageRating || 0;
+
+      // Calculate days until reset
+      const now = new Date();
+      const resetDate = new Date(user.usageResetDate);
+      const daysUntilReset = Math.ceil(
+        (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Calculate monthly limit based on plan type
+      const monthlyLimit =
+        user.planType === PlanType.FREE
+          ? 10
+          : user.planType === PlanType.PRO
+            ? 100
+            : -1; // -1 for unlimited
+
+      return {
+        user: {
+          id: user.id,
+          github_id: user.githubId,
+          username: user.username,
+          email: user.email,
+          avatar_url: user.avatarUrl,
+          plan_type: user.planType,
+          monthly_usage_count: user.monthlyUsageCount,
+          usage_reset_date: user.usageResetDate.toISOString(),
+          created_at: user.createdAt.toISOString(),
+          updated_at: user.updatedAt.toISOString(),
+        },
+        recent_analyses: recentAnalyses.map(analysis => ({
+          id: analysis.id,
+          user_id: analysis.userId,
+          user_ip_hash: analysis.userIpHash,
+          repository_url: analysis.repositoryUrl,
+          repository_name: analysis.repositoryName,
+          repository_owner: analysis.repositoryOwner,
+          primary_language: analysis.primaryLanguage,
+          framework_detected: analysis.frameworkDetected,
+          file_count: analysis.fileCount,
+          total_size_bytes: analysis.totalSizeBytes,
+          analysis_status: analysis.analysisStatus,
+          ai_model_used: analysis.aiModelUsed,
+          processing_time_seconds: analysis.processingTimeSeconds,
+          created_at: analysis.createdAt.toISOString(),
+          completed_at: analysis.completedAt?.toISOString(),
+        })),
+        usage_stats: {
+          current_month_usage: user.monthlyUsageCount,
+          total_repositories: totalRepositories,
+          successful_generations: successfulGenerations,
+          average_rating: parseFloat(averageRating),
+        },
+        plan_limits: {
+          monthly_limit: monthlyLimit,
+          current_usage: user.monthlyUsageCount,
+          days_until_reset: daysUntilReset,
+        },
+      };
+    } catch (error) {
+      throw new UnauthorizedException(
+        `Failed to get user dashboard: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Get comprehensive user profile data
+   * This method provides all necessary data for the profile page
+   */
+  async getUserProfile(userId: string): Promise<UserProfileResponse> {
+    const startTime = Date.now();
+    this.logger.setContext({
+      service: 'AuthService',
+      method: 'getUserProfile',
+      userId,
+    });
+
+    try {
+      this.logger.info('Fetching user profile data', { userId });
+
+      // Get user data with performance logging
+      const userStartTime = Date.now();
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        this.logger.error('User not found for profile', { userId });
+        throw new UnauthorizedException('User not found');
+      }
+      this.logger.database('User lookup', 'users', Date.now() - userStartTime, {
+        userId,
+      });
+
+      // Calculate days until usage reset
+      const now = new Date();
+      const resetDate = new Date(user.usageResetDate);
+      const daysUntilReset = Math.ceil(
+        (resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Calculate account age
+      const accountAge = Math.ceil(
+        (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Calculate days since last activity
+      const daysSinceLastActivity = Math.ceil(
+        (now.getTime() - user.updatedAt.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Get basic repository statistics for profile context
+      const statsStartTime = Date.now();
+      const [totalRepositories, successfulGenerations] = await Promise.all([
+        this.repositoryAnalysisRepository.count({ where: { userId } }),
+        this.repositoryAnalysisRepository.count({
+          where: { userId, analysisStatus: AnalysisStatus.COMPLETED },
+        }),
+      ]);
+      this.logger.database(
+        'Repository statistics lookup',
+        'repository_analysis',
+        Date.now() - statsStartTime,
+        { userId },
+      );
+
+      // Build profile response
+      const profileData: UserProfileResponse = {
+        user: {
+          id: user.id,
+          github_id: user.githubId,
+          username: user.username,
+          email: user.email,
+          avatar_url: user.avatarUrl,
+          plan_type: user.planType,
+          monthly_usage_count: user.monthlyUsageCount,
+          usage_reset_date: user.usageResetDate.toISOString(),
+          created_at: user.createdAt.toISOString(),
+          updated_at: user.updatedAt.toISOString(),
+        },
+        profile_stats: {
+          current_month_usage: user.monthlyUsageCount,
+          total_repositories: totalRepositories,
+          successful_generations: successfulGenerations,
+          days_until_reset: daysUntilReset,
+          account_age_days: accountAge,
+          days_since_last_activity: daysSinceLastActivity,
+        },
+        plan_details: {
+          current_plan: user.planType,
+          monthly_limit: this.getMonthlyLimit(user.planType),
+          features: this.getPlanFeatures(user.planType),
+        },
+        security_status: {
+          github_connected: !!user.githubId,
+          password_set: !!user.passwordHash,
+          two_factor_enabled: false, // Placeholder for future implementation
+          last_login: user.updatedAt.toISOString(),
+        },
+      };
+
+      const totalDuration = Date.now() - startTime;
+      this.logger.performance('getUserProfile', totalDuration, {
+        userId,
+        hasGithubConnection: !!user.githubId,
+        planType: user.planType,
+      });
+
+      this.logger.info('User profile data retrieved successfully', {
+        userId,
+        username: user.username,
+        planType: user.planType,
+        totalRepositories,
+        successfulGenerations,
+        duration: totalDuration,
+      });
+
+      return profileData;
+    } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      this.logger.errorWithStack('Failed to get user profile', error, {
+        method: 'getUserProfile',
+        userId,
+        duration: totalDuration,
+      });
+
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      throw new UnauthorizedException(
+        `Failed to get user profile: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Get monthly usage limit based on plan type
+   */
+  private getMonthlyLimit(planType: PlanType): number {
+    const limits = {
+      [PlanType.FREE]: 10,
+      [PlanType.PRO]: 100,
+      [PlanType.TEAM]: -1, // Unlimited
+    };
+    return limits[planType] || 10;
+  }
+
+  /**
+   * Get plan features based on plan type
+   */
+  private getPlanFeatures(planType: PlanType): PlanFeatures {
+    const baseFeatures = {
+      repository_analysis: true,
+      documentation_generation: true,
+      basic_support: true,
+    };
+
+    const planFeatures = {
+      [PlanType.FREE]: {
+        ...baseFeatures,
+        monthly_limit: 10,
+        private_repos: false,
+        priority_processing: false,
+        advanced_analytics: false,
+        team_features: false,
+        priority_support: false,
+      },
+      [PlanType.PRO]: {
+        ...baseFeatures,
+        monthly_limit: 100,
+        private_repos: true,
+        priority_processing: true,
+        advanced_analytics: true,
+        team_features: false,
+        priority_support: true,
+      },
+      [PlanType.TEAM]: {
+        ...baseFeatures,
+        monthly_limit: -1, // Unlimited
+        private_repos: true,
+        priority_processing: true,
+        advanced_analytics: true,
+        team_features: true,
+        priority_support: true,
+      },
+    };
+
+    return planFeatures[planType] || planFeatures[PlanType.FREE];
   }
 }

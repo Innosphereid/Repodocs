@@ -42,14 +42,29 @@ export const appConfig = registerAs('app', () => ({
   jwtSecret: process.env.JWT_SECRET,
   sessionSecret: process.env.SESSION_SECRET,
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
 }));
 
 export const rateLimitConfig = registerAs('rateLimit', () => ({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000,
-  maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
-  ipRateLimitAnonymous: parseInt(process.env.IP_RATE_LIMIT_ANONYMOUS, 10) || 3,
-  ipRateLimitAuthenticated:
-    parseInt(process.env.IP_RATE_LIMIT_AUTHENTICATED, 10) || 10,
+  // Document generation limits (monthly)
+  documentGeneration: {
+    anonymous: parseInt(process.env.DOC_GEN_LIMIT_ANONYMOUS, 10) || 3,
+    free: parseInt(process.env.DOC_GEN_LIMIT_FREE, 10) || 10,
+    pro: parseInt(process.env.DOC_GEN_LIMIT_PRO, 10) || 100,
+    team: process.env.DOC_GEN_LIMIT_TEAM || 'unlimited',
+  },
+
+  // Login attempt limits (per minute)
+  loginAttempt: {
+    maxAttempts: parseInt(process.env.LOGIN_MAX_ATTEMPTS, 10) || 5,
+    windowMs: parseInt(process.env.LOGIN_WINDOW_MS, 10) || 60000, // 1 minute
+  },
+
+  // General API rate limiting
+  api: {
+    windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS, 10) || 900000, // 15 minutes
+    maxRequests: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS, 10) || 100,
+  },
 }));
 
 export const validationSchema = Joi.object({
@@ -89,10 +104,19 @@ export const validationSchema = Joi.object({
   JWT_SECRET: Joi.string().optional(),
   SESSION_SECRET: Joi.string().optional(),
   CORS_ORIGIN: Joi.string().uri().optional(),
+  BACKEND_URL: Joi.string().uri().optional(),
 
-  // Rate Limiting
-  RATE_LIMIT_WINDOW_MS: Joi.number().positive().optional(),
-  RATE_LIMIT_MAX_REQUESTS: Joi.number().positive().optional(),
-  IP_RATE_LIMIT_ANONYMOUS: Joi.number().positive().optional(),
-  IP_RATE_LIMIT_AUTHENTICATED: Joi.number().positive().optional(),
+  // Rate Limiting - Document Generation
+  DOC_GEN_LIMIT_ANONYMOUS: Joi.number().positive().optional(),
+  DOC_GEN_LIMIT_FREE: Joi.number().positive().optional(),
+  DOC_GEN_LIMIT_PRO: Joi.number().positive().optional(),
+  DOC_GEN_LIMIT_TEAM: Joi.string().valid('unlimited').optional(),
+
+  // Rate Limiting - Login Attempts
+  LOGIN_MAX_ATTEMPTS: Joi.number().positive().optional(),
+  LOGIN_WINDOW_MS: Joi.number().positive().optional(),
+
+  // Rate Limiting - API
+  API_RATE_LIMIT_WINDOW_MS: Joi.number().positive().optional(),
+  API_RATE_LIMIT_MAX_REQUESTS: Joi.number().positive().optional(),
 });

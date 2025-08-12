@@ -108,22 +108,17 @@ export class RepositoryAnalysisService {
         throw new BadRequestException(validation.error);
       }
 
-      // Check rate limits
-      const rateLimitStatus = await this.rateLimitingService.getRateLimitStatus(
-        request.userIp,
-        request.userId,
-      );
+      // Check rate limits for document generation
+      const rateLimitStatus =
+        await this.rateLimitingService.checkDocumentGenerationRateLimit(
+          request.userIp,
+          request.userId,
+        );
 
-      if (!rateLimitStatus.ip.allowed) {
-        throw new ForbiddenException('Rate limit exceeded for IP address');
-      }
-
-      if (
-        request.userId &&
-        rateLimitStatus.user &&
-        !rateLimitStatus.user.allowed
-      ) {
-        throw new ForbiddenException('Monthly usage limit exceeded');
+      if (!rateLimitStatus.allowed) {
+        throw new ForbiddenException(
+          `Monthly document generation limit exceeded. Your ${rateLimitStatus.planType} plan allows ${rateLimitStatus.limit} generations per month.`,
+        );
       }
 
       // Create analysis record

@@ -31,55 +31,68 @@ export class RateLimitingMiddleware implements NestMiddleware {
         }
       }
 
-      // Check rate limits
+      // Check rate limits using new service structure
       const rateLimitStatus = await this.rateLimitingService.getRateLimitStatus(
         clientIp,
         userId,
       );
 
-      if (!rateLimitStatus.ip.allowed) {
+      // Check document generation rate limit
+      if (!rateLimitStatus.documentGeneration.allowed) {
         throw new HttpException(
           {
-            message: 'Rate limit exceeded for IP address',
+            message: 'Monthly document generation limit exceeded',
             error: 'Too Many Requests',
             statusCode: HttpStatus.TOO_MANY_REQUESTS,
-            remaining: rateLimitStatus.ip.remaining,
-            resetTime: rateLimitStatus.ip.resetTime,
+            remaining: rateLimitStatus.documentGeneration.remaining,
+            resetTime: rateLimitStatus.documentGeneration.resetTime,
+            planType: rateLimitStatus.documentGeneration.planType,
           },
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
 
-      if (userId && rateLimitStatus.user && !rateLimitStatus.user.allowed) {
+      // Check API rate limit
+      if (rateLimitStatus.api && !rateLimitStatus.api.allowed) {
         throw new HttpException(
           {
-            message: 'Monthly usage limit exceeded',
+            message: 'API rate limit exceeded',
             error: 'Too Many Requests',
             statusCode: HttpStatus.TOO_MANY_REQUESTS,
-            remaining: rateLimitStatus.user.remaining,
-            resetTime: rateLimitStatus.user.resetTime,
+            remaining: rateLimitStatus.api.remaining,
+            resetTime: rateLimitStatus.api.resetTime,
           },
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
 
       // Add rate limit headers to response
-      res.setHeader('X-RateLimit-Limit', rateLimitStatus.ip.limit);
-      res.setHeader('X-RateLimit-Remaining', rateLimitStatus.ip.remaining);
       res.setHeader(
-        'X-RateLimit-Reset',
-        rateLimitStatus.ip.resetTime.getTime(),
+        'X-DocGenRateLimit-Limit',
+        rateLimitStatus.documentGeneration.limit,
+      );
+      res.setHeader(
+        'X-DocGenRateLimit-Remaining',
+        rateLimitStatus.documentGeneration.remaining,
+      );
+      res.setHeader(
+        'X-DocGenRateLimit-Reset',
+        rateLimitStatus.documentGeneration.resetTime.getTime(),
+      );
+      res.setHeader(
+        'X-DocGenRateLimit-PlanType',
+        rateLimitStatus.documentGeneration.planType,
       );
 
-      if (userId && rateLimitStatus.user) {
-        res.setHeader('X-UserRateLimit-Limit', rateLimitStatus.user.limit);
+      if (rateLimitStatus.api) {
+        res.setHeader('X-ApiRateLimit-Limit', rateLimitStatus.api.limit);
         res.setHeader(
-          'X-UserRateLimit-Remaining',
-          rateLimitStatus.user.remaining,
+          'X-ApiRateLimit-Remaining',
+          rateLimitStatus.api.remaining,
         );
         res.setHeader(
-          'X-UserRateLimit-Reset',
-          rateLimitStatus.user.resetTime.getTime(),
+          'X-ApiRateLimit-Reset',
+          rateLimitStatus.api.resetTime.getTime(),
         );
       }
 
