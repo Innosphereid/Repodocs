@@ -8,7 +8,6 @@ import {
   Mail,
   Download,
   Trash2,
-  Settings,
   CreditCard,
   Bell,
   Shield,

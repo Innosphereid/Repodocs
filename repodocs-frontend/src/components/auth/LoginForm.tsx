@@ -127,7 +127,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
 
         {onSwitchToRegister && (
           <div className="mt-6 text-center text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <button
               type="button"
               onClick={onSwitchToRegister}

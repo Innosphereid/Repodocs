@@ -44,7 +44,7 @@ export default function LoginPage() {
       addToast({
         type: "success",
         message: "Login successful! Redirecting to dashboard...",
-        duration: 3000
+        duration: 3000,
       });
       router.push("/dashboard");
     } catch (error) {
@@ -66,9 +66,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">RepoDocs</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
 
         <Card className="w-full max-w-md mx-auto">
@@ -132,7 +130,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-6 text-center text-sm">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/auth"
                 className="text-blue-600 hover:text-blue-800 font-medium"

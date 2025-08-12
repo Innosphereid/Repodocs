@@ -86,7 +86,7 @@ class APIService {
   }
 
   async regenerateDocumentation(
-    analysisId: string
+    _analysisId: string
   ): Promise<AnalyzeRepositoryResponse> {
     return this.request<AnalyzeRepositoryResponse>(
       `/api/v1/repository-analysis/analyze`,

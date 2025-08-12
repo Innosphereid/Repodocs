@@ -1,14 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  BarChart3,
-  Clock,
-  Calendar,
-  TrendingUp,
-  Activity,
-  Target,
-} from "lucide-react";
+import { BarChart3, Clock, Calendar, Activity, Target } from "lucide-react";
 
 export interface ProfileStatsProps {
   monthlyUsageCount: number;

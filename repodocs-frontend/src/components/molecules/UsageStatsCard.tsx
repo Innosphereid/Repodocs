@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Clock } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 export interface UsageStatsCardProps {
   monthlyUsageCount: number;

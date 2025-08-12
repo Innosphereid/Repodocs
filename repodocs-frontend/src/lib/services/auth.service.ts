@@ -1,15 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import {
-  AnalyzeRepositoryRequest,
-  AnalyzeRepositoryResponse,
-  RepositoryAnalysisProgress,
-  DocumentationGenerationResult,
-  UserDashboardData,
-  APIError,
-  User,
-  RepositoryAnalysis,
-  UserProfileResponse,
-} from "@/lib/types";
+import { User, UserProfileResponse } from "@/lib/types";
 import { TokenStorage } from "@/lib/utils/cookie.utils";
 
 export interface AuthResponse {
@@ -169,7 +159,7 @@ class AuthService {
         "/api/v1/auth/login",
         credentials
       );
-      const { access_token, user } = response.data;
+      const { access_token } = response.data;
 
       this.setAuthToken(access_token);
       return response.data;
@@ -198,7 +188,7 @@ class AuthService {
       const response: AxiosResponse<AuthResponse> = await this.api.post(
         "/api/v1/auth/refresh"
       );
-      const { access_token, user } = response.data;
+      const { access_token } = response.data;
 
       this.setAuthToken(access_token);
       return response.data;
@@ -210,8 +200,8 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       await this.api.post("/api/v1/auth/logout");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch (_error) {
+      console.error("Logout error:", _error);
     } finally {
       this.clearAuthToken();
     }
@@ -294,8 +284,8 @@ class AuthService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-    } catch (error) {
-      console.error("Error decoding token:", error);
+    } catch (_error) {
+      console.error("Error decoding token:", _error);
       return null;
     }
   }

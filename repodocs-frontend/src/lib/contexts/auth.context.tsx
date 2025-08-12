@@ -1,18 +1,8 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { authService } from "@/lib/services/auth.service";
 import { User } from "@/lib/types";
-import {
-  authService,
-  AuthResponse,
-  AuthStatus,
-} from "@/lib/services/auth.service";
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +21,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export { AuthContext };
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -40,7 +32,7 @@ export const useAuth = () => {
 };
 
 interface AuthProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -83,8 +75,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const response = await authService.localLogin({ username, password });
 
-      // Token is automatically stored by auth service
-      setUser(response.user as User);
+      // Convert AuthResponse.user to User type
+      const userData: User = {
+        id: response.user.id,
+        username: response.user.username,
+        email: response.user.email,
+        avatar_url: response.user.avatarUrl,
+        plan_type: response.user.planType as "free" | "pro" | "team",
+        monthly_usage_count: response.user.monthlyUsageCount,
+        usage_reset_date: new Date().toISOString(), // Will be updated when profile is fetched
+        created_at: new Date().toISOString(), // Will be updated when profile is fetched
+        updated_at: new Date().toISOString(), // Will be updated when profile is fetched
+      };
+
+      setUser(userData);
       setIsAuthenticated(true);
 
       // Redirect to dashboard after successful login
@@ -103,10 +107,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     username: string,
     email: string,
     password: string
-  ) => {
+  ): Promise<void> => {
     try {
       setIsLoading(true);
-      const response = await authService.localRegister({
+      await authService.localRegister({
         username,
         email,
         password,
@@ -115,8 +119,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Don't set user as authenticated after registration
       // User needs to login separately
       // Token is stored but user is not logged in yet
-
-      return response;
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;

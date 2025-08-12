@@ -4,7 +4,6 @@ import {
   RepositoryAnalysisProgress,
   DocumentationGenerationResult,
   UserDashboardData,
-  User,
 } from "@/lib/types";
 
 // Hook for repository analysis workflow
