@@ -80,20 +80,31 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
                 {/* User Menu */}
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.username}
-                        className="h-8 w-8 rounded-full"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                        <User className="h-4 w-4" />
-                      </div>
-                    )}
-                    <span className="text-sm font-medium text-gray-700">
+                    {/* Profile Link - Avatar */}
+                    <Link
+                      href="/dashboard/profile"
+                      className="hover:opacity-80 transition-opacity"
+                    >
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.username}
+                          className="h-8 w-8 rounded-full cursor-pointer"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center cursor-pointer">
+                          <User className="h-4 w-4" />
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Profile Link - Username */}
+                    <Link
+                      href="/dashboard/profile"
+                      className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors cursor-pointer"
+                    >
                       {user.username}
-                    </span>
+                    </Link>
                   </div>
 
                   <Button
