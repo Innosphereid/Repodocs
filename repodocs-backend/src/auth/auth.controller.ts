@@ -23,6 +23,7 @@ import {
   LocalAuthDto,
   CreateUserDto,
 } from './dto';
+import { UserProfileResponse } from './dto/profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -154,8 +155,42 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@CurrentUser() user: JwtPayload) {
-    return this.authService.getUserById(user.sub);
+  async getProfile(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<UserProfileResponse> {
+    this.logger.setContext({
+      service: 'AuthController',
+      method: 'getProfile',
+      userId: user.sub,
+    });
+
+    try {
+      this.logger.info('User profile requested', {
+        method: 'getProfile',
+        userId: user.sub,
+        username: user.username,
+      });
+
+      const profileData = await this.authService.getUserProfile(user.sub);
+
+      this.logger.info('User profile retrieved successfully', {
+        method: 'getProfile',
+        userId: user.sub,
+        username: user.username,
+        hasGithubConnection: !!profileData.user.github_id,
+        planType: profileData.user.plan_type,
+        totalRepositories: profileData.profile_stats.total_repositories,
+      });
+
+      return profileData;
+    } catch (error) {
+      this.logger.errorWithStack('Failed to get user profile', error, {
+        method: 'getProfile',
+        userId: user.sub,
+        username: user.username,
+      });
+      throw error;
+    }
   }
 
   @Get('dashboard')
