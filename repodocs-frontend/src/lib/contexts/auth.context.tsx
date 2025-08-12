@@ -112,14 +112,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
       });
 
-      // Token is automatically stored by auth service
-      setUser(response.user as User);
-      setIsAuthenticated(true);
-
-      // Redirect to dashboard after successful registration
-      if (typeof window !== "undefined") {
-        window.location.href = "/dashboard";
-      }
+      // Don't set user as authenticated after registration
+      // User needs to login separately
+      // Token is stored but user is not logged in yet
+      
+      return response;
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;

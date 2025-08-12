@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/lib/contexts/auth.context";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,14 +17,13 @@ import { Github } from "lucide-react";
 
 interface RegisterFormProps {
   onSwitchToLogin?: () => void;
-  onSuccess?: () => void;
 }
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSwitchToLogin,
-  onSuccess,
 }) => {
   const { register, loginWithGitHub, isLoading } = useAuth();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -57,7 +57,25 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     try {
       await register(formData.username, formData.email, formData.password);
-      onSuccess?.();
+
+      // Show success toast
+      addToast({
+        type: "success",
+        message:
+          "Registration successful! Please sign in with your new account.",
+        duration: 5000,
+      });
+
+      // Switch to login form
+      onSwitchToLogin?.();
+
+      // Clear form
+      setFormData({
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
     } catch (error) {
       setError(error instanceof Error ? error.message : "Registration failed");
     }

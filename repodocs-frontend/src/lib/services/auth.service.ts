@@ -174,9 +174,8 @@ class AuthService {
         "/api/v1/auth/register",
         userData
       );
-      const { access_token, user } = response.data;
-
-      this.setAuthToken(access_token);
+      // Don't store token after registration
+      // User needs to login separately
       return response.data;
     } catch (error) {
       throw this.handleError(error);

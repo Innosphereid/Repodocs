@@ -8,19 +8,15 @@ import { useAuth } from "@/lib/contexts/auth.context";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Redirect if already authenticated
   React.useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, router]);
-
-  const handleSuccess = () => {
-    router.push("/dashboard");
-  };
+  }, [isAuthenticated, user, router]);
 
   const switchToRegister = () => {
     setIsLogin(false);
@@ -41,15 +37,9 @@ export default function AuthPage() {
         </div>
 
         {isLogin ? (
-          <LoginForm
-            onSwitchToRegister={switchToRegister}
-            onSuccess={handleSuccess}
-          />
+          <LoginForm onSwitchToRegister={switchToRegister} />
         ) : (
-          <RegisterForm
-            onSwitchToLogin={switchToLogin}
-            onSuccess={handleSuccess}
-          />
+          <RegisterForm onSwitchToLogin={switchToLogin} />
         )}
       </div>
     </div>

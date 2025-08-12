@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/contexts/auth.context";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,14 +18,12 @@ import { Github } from "lucide-react";
 
 interface LoginFormProps {
   onSwitchToRegister?: () => void;
-  onSuccess?: () => void;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({
-  onSwitchToRegister,
-  onSuccess,
-}) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const { login, loginWithGitHub, isLoading } = useAuth();
+  const { addToast } = useToast();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -44,7 +44,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     try {
       await login(formData.username, formData.password);
-      onSuccess?.();
+      addToast({
+        type: "success",
+        message: "Login successful! Redirecting to dashboard...",
+        duration: 3000,
+      });
+      router.push("/dashboard");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Login failed");
     }
@@ -62,8 +67,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>Sign in to your account to continue</CardDescription>
+        <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+        <CardDescription>Welcome back to RepoDocs</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,7 +76,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <Input
               type="text"
               name="username"
-              placeholder="Username or Email"
+              placeholder="Username"
               value={formData.username}
               onChange={handleInputChange}
               required
