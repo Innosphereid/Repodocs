@@ -15,6 +15,11 @@ export interface ProfileStatsProps {
   usageResetDate: string;
   createdAt: string;
   updatedAt: string;
+  daysUntilReset: number;
+  totalRepositories: number;
+  successfulGenerations: number;
+  accountAgeDays: number;
+  daysSinceLastActivity: number;
   className?: string;
 }
 
@@ -23,6 +28,11 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
   usageResetDate,
   createdAt,
   updatedAt,
+  daysUntilReset,
+  totalRepositories,
+  successfulGenerations,
+  accountAgeDays,
+  daysSinceLastActivity,
   className,
 }) => {
   const formatDate = (dateString: string) => {
@@ -35,42 +45,6 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
       });
     } catch {
       return "Invalid date";
-    }
-  };
-
-  const getDaysUntilReset = () => {
-    try {
-      const resetDate = new Date(usageResetDate);
-      const now = new Date();
-      const diffTime = resetDate.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays > 0 ? diffDays : 0;
-    } catch {
-      return 0;
-    }
-  };
-
-  const getAccountAge = () => {
-    try {
-      const created = new Date(createdAt);
-      const now = new Date();
-      const diffTime = now.getTime() - created.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
-    } catch {
-      return 0;
-    }
-  };
-
-  const getLastActivityDays = () => {
-    try {
-      const updated = new Date(updatedAt);
-      const now = new Date();
-      const diffTime = now.getTime() - updated.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
-    } catch {
-      return 0;
     }
   };
 
@@ -99,7 +73,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
               <Clock className="h-6 w-6 text-green-600" />
             </div>
             <div className="text-2xl font-bold text-green-600">
-              {getDaysUntilReset()}
+              {daysUntilReset}
             </div>
             <div className="text-sm text-gray-600">Days Until Reset</div>
           </div>
@@ -109,7 +83,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
               <Calendar className="h-6 w-6 text-purple-600" />
             </div>
             <div className="text-2xl font-bold text-purple-600">
-              {getAccountAge()}
+              {accountAgeDays}
             </div>
             <div className="text-sm text-gray-600">Account Age (Days)</div>
           </div>
@@ -119,7 +93,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
               <Activity className="h-6 w-6 text-orange-600" />
             </div>
             <div className="text-2xl font-bold text-orange-600">
-              {getLastActivityDays()}
+              {daysSinceLastActivity}
             </div>
             <div className="text-sm text-gray-600">
               Days Since Last Activity
@@ -128,6 +102,18 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({
         </div>
 
         <div className="mt-6 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Total Repositories</span>
+            <span className="font-medium text-green-600">
+              {totalRepositories}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Successful Generations</span>
+            <span className="font-medium text-purple-600">
+              {successfulGenerations}
+            </span>
+          </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Usage Reset Date</span>
             <span className="font-medium">{formatDate(usageResetDate)}</span>

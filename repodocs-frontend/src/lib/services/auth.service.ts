@@ -1,5 +1,15 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { User } from "@/lib/types";
+import {
+  AnalyzeRepositoryRequest,
+  AnalyzeRepositoryResponse,
+  RepositoryAnalysisProgress,
+  DocumentationGenerationResult,
+  UserDashboardData,
+  APIError,
+  User,
+  RepositoryAnalysis,
+  UserProfileResponse,
+} from "@/lib/types";
 import { TokenStorage } from "@/lib/utils/cookie.utils";
 
 export interface AuthResponse {
@@ -210,9 +220,19 @@ class AuthService {
   // User Profile
   async getProfile(): Promise<User> {
     try {
-      // Now using dashboard endpoint to get complete user data
-      const response = await this.api.get("/api/v1/auth/dashboard");
+      // Now using the new profile endpoint to get complete user data
+      const response = await this.api.get("/api/v1/auth/profile");
       return response.data.user;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get comprehensive profile data including stats, plan details, and security status
+  async getComprehensiveProfile(): Promise<UserProfileResponse> {
+    try {
+      const response = await this.api.get("/api/v1/auth/profile");
+      return response.data;
     } catch (error) {
       throw this.handleError(error);
     }

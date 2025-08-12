@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const authStatus = await authService.getAuthStatus();
 
         if (authStatus.authenticated && authStatus.user) {
-          // Get full user profile from dashboard endpoint
+          // Get full user profile from new profile endpoint
           const userProfile = await authService.getProfile();
           setUser(userProfile);
           setIsAuthenticated(true);
@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Don't set user as authenticated after registration
       // User needs to login separately
       // Token is stored but user is not logged in yet
-      
+
       return response;
     } catch (error) {
       console.error("Registration failed:", error);

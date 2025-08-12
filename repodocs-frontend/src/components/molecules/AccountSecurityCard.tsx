@@ -6,14 +6,33 @@ import { Shield, Github, Lock } from "lucide-react";
 export interface AccountSecurityCardProps {
   githubId?: number;
   hasPassword: boolean;
+  twoFactorEnabled: boolean;
+  lastLogin: string;
   className?: string;
 }
 
 const AccountSecurityCard: React.FC<AccountSecurityCardProps> = ({
   githubId,
   hasPassword,
+  twoFactorEnabled,
+  lastLogin,
   className,
 }) => {
+  const formatLastLogin = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Unknown";
+    }
+  };
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -43,11 +62,15 @@ const AccountSecurityCard: React.FC<AccountSecurityCardProps> = ({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">Two-Factor Auth</span>
-          <Badge variant="secondary">Not Enabled</Badge>
+          <Badge variant={twoFactorEnabled ? "default" : "secondary"}>
+            {twoFactorEnabled ? "Enabled" : "Not Enabled"}
+          </Badge>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Session Management</span>
-          <Badge variant="default">Active</Badge>
+          <span className="text-sm text-gray-600">Last Login</span>
+          <span className="text-xs font-medium text-gray-700">
+            {formatLastLogin(lastLogin)}
+          </span>
         </div>
       </CardContent>
     </Card>

@@ -7,6 +7,9 @@ export interface UsageStatsCardProps {
   usageResetDate: string;
   createdAt: string;
   updatedAt: string;
+  daysUntilReset: number;
+  totalRepositories: number;
+  successfulGenerations: number;
   className?: string;
 }
 
@@ -15,6 +18,9 @@ const UsageStatsCard: React.FC<UsageStatsCardProps> = ({
   usageResetDate,
   createdAt,
   updatedAt,
+  daysUntilReset,
+  totalRepositories,
+  successfulGenerations,
   className,
 }) => {
   const formatDate = (dateString: string) => {
@@ -27,18 +33,6 @@ const UsageStatsCard: React.FC<UsageStatsCardProps> = ({
       });
     } catch {
       return "Invalid date";
-    }
-  };
-
-  const getDaysUntilReset = () => {
-    try {
-      const resetDate = new Date(usageResetDate);
-      const now = new Date();
-      const diffTime = resetDate.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays > 0 ? diffDays : 0;
-    } catch {
-      return 0;
     }
   };
 
@@ -67,11 +61,27 @@ const UsageStatsCard: React.FC<UsageStatsCardProps> = ({
                 {formatDate(usageResetDate)}
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {getDaysUntilReset()} days until reset
+                {daysUntilReset} days until reset
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 mb-1">
+                Total Repositories
+              </div>
+              <div className="text-lg font-semibold text-green-600">
+                {totalRepositories}
               </div>
             </div>
           </div>
           <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-600 mb-1">
+                Successful Generations
+              </div>
+              <div className="text-lg font-semibold text-purple-600">
+                {successfulGenerations}
+              </div>
+            </div>
             <div>
               <div className="text-sm text-gray-600 mb-1">Account Created</div>
               <div className="text-sm font-medium">{formatDate(createdAt)}</div>

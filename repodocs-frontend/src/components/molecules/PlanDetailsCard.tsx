@@ -3,14 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Crown, User, Zap } from "lucide-react";
+import { PlanFeatures } from "@/lib/types";
 
 export interface PlanDetailsCardProps {
   planType: string;
+  monthlyLimit: number;
+  features: PlanFeatures;
   className?: string;
 }
 
 const PlanDetailsCard: React.FC<PlanDetailsCardProps> = ({
   planType,
+  monthlyLimit,
+  features,
   className,
 }) => {
   const getPlanColor = (planType: string) => {
@@ -39,48 +44,9 @@ const PlanDetailsCard: React.FC<PlanDetailsCardProps> = ({
     }
   };
 
-  const getPlanFeatures = (planType: string) => {
-    switch (planType) {
-      case "free":
-        return {
-          monthlyLimit: "10",
-          privateRepos: false,
-          priorityProcessing: false,
-          advancedAnalytics: false,
-          teamFeatures: false,
-          prioritySupport: false,
-        };
-      case "pro":
-        return {
-          monthlyLimit: "100",
-          privateRepos: true,
-          priorityProcessing: true,
-          advancedAnalytics: true,
-          teamFeatures: false,
-          prioritySupport: false,
-        };
-      case "team":
-        return {
-          monthlyLimit: "Unlimited",
-          privateRepos: true,
-          priorityProcessing: true,
-          advancedAnalytics: true,
-          teamFeatures: true,
-          prioritySupport: true,
-        };
-      default:
-        return {
-          monthlyLimit: "10",
-          privateRepos: false,
-          priorityProcessing: false,
-          advancedAnalytics: false,
-          teamFeatures: false,
-          prioritySupport: false,
-        };
-    }
+  const formatMonthlyLimit = (limit: number) => {
+    return limit === -1 ? "Unlimited" : limit.toString();
   };
-
-  const features = getPlanFeatures(planType);
 
   return (
     <Card className={className}>
@@ -105,38 +71,40 @@ const PlanDetailsCard: React.FC<PlanDetailsCardProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Monthly Limit</span>
-              <span className="font-medium">{features.monthlyLimit}</span>
+              <span className="font-medium">
+                {formatMonthlyLimit(monthlyLimit)}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">
                 Private Repositories
               </span>
               <span className="font-medium">
-                {features.privateRepos ? "Yes" : "No"}
+                {features.private_repos ? "Yes" : "No"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Priority Processing</span>
               <span className="font-medium">
-                {features.priorityProcessing ? "Yes" : "No"}
+                {features.priority_processing ? "Yes" : "No"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Advanced Analytics</span>
               <span className="font-medium">
-                {features.advancedAnalytics ? "Yes" : "No"}
+                {features.advanced_analytics ? "Yes" : "No"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Team Features</span>
               <span className="font-medium">
-                {features.teamFeatures ? "Yes" : "No"}
+                {features.team_features ? "Yes" : "No"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Priority Support</span>
               <span className="font-medium">
-                {features.prioritySupport ? "Yes" : "No"}
+                {features.priority_support ? "Yes" : "No"}
               </span>
             </div>
           </div>
